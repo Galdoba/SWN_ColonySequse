@@ -23,10 +23,17 @@ func NewOutpost() *Outpost {
 	return outpost
 }
 
-func (outpost *Outpost) changePopsBy(decrement int) {
-	outpost.Population = outpost.Population + decrement
+func (outpost *Outpost) changePopsBy(increment int) {
+	outpost.Population = outpost.Population + increment
 	if outpost.Population < 0 {
 		outpost.Population = 0
+	}
+}
+
+func (outpost *Outpost) changeSupplesBy(increment int) {
+	outpost.Supplies = outpost.Supplies + increment
+	if outpost.Supplies < 0 {
+		outpost.Supplies = 0
 	}
 }
 
@@ -133,25 +140,31 @@ func ColonyTrouble(index int) string {
 	return "False alarm- no disaster occurs."
 }
 
+func (outpost *Outpost) supplyDemand() int {
+	return outpost.Population / 50
+}
+
 func (outpost *Outpost) step1() {
-	consumed := outpost.Population / 50
-	fmt.Println(consumed, " tons of supples people will consume...")
+	sDemand := outpost.supplyDemand()
+	fmt.Println(sDemand, " tons of supples people will consume...")
 	dangeredPops := 0
-	if consumed > outpost.Supplies {
-		dangeredPops = (consumed - outpost.Supplies) * 50
+	if sDemand > outpost.Supplies {
+		dangeredPops = (sDemand - outpost.Supplies) * 50
 		fmt.Println(dangeredPops, "people will starve...")
-	}
-	outpost.Supplies = outpost.Supplies - consumed
-	if outpost.Supplies < 0 {
-		outpost.Supplies = 0
-	}
-	toDie := dangeredPops / 10
+		toDie := dangeredPops / 10
 	fmt.Println(toDie, "people will die...")
 	outpost.changePopsBy(-toDie)
+	}
+	outpost.changeSupplesBy(-sDemand)
+	
 
 }
 
 func (outpost *Outpost) step2() {
 	outpost.Credits = outpost.Credits + outpost.Population
 	fmt.Println(outpost.Population, "payed taxes...")
+}
+
+func (outpost *Outpost) step3() {
+	fmt.Println("Buy/Build stuff")
 }

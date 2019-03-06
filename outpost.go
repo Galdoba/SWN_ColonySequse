@@ -7,19 +7,27 @@ import (
 type Outpost struct {
 	Population int
 	Morale     int
-	Supplies   int
-	Materials  int
+	Stored     map[string]int
+	Atmosphere int
 	TechLevel  string
-	Housing    int
 	Holdings   []string
-	Credits    int
+	Credits    int64
+	Friction   int
+	TroubleTN  int
 }
 
 func NewOutpost() *Outpost {
 	outpost := &Outpost{}
+	outpost.Stored = make(map[string]int)
+	outpost.Stored["Supplies"] = roll1dX(100, 0) * 10
 	outpost.Morale = 7
 	outpost.Population = roll1dX(100, 0) * 1000
-	outpost.Supplies = roll1dX(100, 0) * 10
+	outpost.TroubleTN = 1
+	outpost.Holdings = append(outpost.Holdings, "HQ")
+	outpost.Holdings = append(outpost.Holdings, "Colony Housing")
+	outpost.Holdings = append(outpost.Holdings, "Colony Housing")
+	outpost.Holdings = append(outpost.Holdings, "Local Supply")
+	outpost.Holdings = append(outpost.Holdings, "Local Supply")
 	return outpost
 }
 
@@ -31,9 +39,9 @@ func (outpost *Outpost) changePopsBy(increment int) {
 }
 
 func (outpost *Outpost) changeSupplesBy(increment int) {
-	outpost.Supplies = outpost.Supplies + increment
-	if outpost.Supplies < 0 {
-		outpost.Supplies = 0
+	outpost.Stored["Supplies"] = outpost.Stored["Supplies"] + increment
+	if outpost.Stored["Supplies"] < 0 {
+		outpost.Stored["Supplies"] = 0
 	}
 }
 
@@ -148,23 +156,74 @@ func (outpost *Outpost) step1() {
 	sDemand := outpost.supplyDemand()
 	fmt.Println(sDemand, " tons of supples people will consume...")
 	dangeredPops := 0
-	if sDemand > outpost.Supplies {
-		dangeredPops = (sDemand - outpost.Supplies) * 50
+	if sDemand > outpost.Stored["Supplies"] {
+		dangeredPops = (sDemand - outpost.Stored["Supplies"]) * 50
 		fmt.Println(dangeredPops, "people will starve...")
 		toDie := dangeredPops / 10
-	fmt.Println(toDie, "people will die...")
-	outpost.changePopsBy(-toDie)
+		fmt.Println(toDie, "people will die...")
+		outpost.changePopsBy(-toDie)
 	}
 	outpost.changeSupplesBy(-sDemand)
-	
 
 }
 
 func (outpost *Outpost) step2() {
-	outpost.Credits = outpost.Credits + outpost.Population
+	outpost.Credits = outpost.Credits + int64(outpost.Population)
 	fmt.Println(outpost.Population, "payed taxes...")
+
 }
 
 func (outpost *Outpost) step3() {
 	fmt.Println("Buy/Build stuff")
+	outpost.produce()
+}
+
+func (outpost *Outpost) step4() {
+	housing := outpost.Housing()
+	pops := outpost.Population
+	overcrowd := pops - housing
+	if overcrowd > 0 {
+		toDie := (outpost.Population - outpost.Housing()) / 10
+		fmt.Println(toDie, "people died because of lack of housing...")
+		outpost.changePopsBy(-toDie)
+	}
+}
+
+func (outpost *Outpost) step5() {
+	troubleRoll := roll1dX(10, 0)
+	fmt.Println("trRoll", troubleRoll, "trTN", outpost.TroubleTN)
+	if troubleRoll <= outpost.TroubleTN {
+		fmt.Println(ColonyTrouble(roll1dX(100, 0)))
+		outpost.TroubleTN = 1
+	} else {
+		outpost.TroubleTN++
+	}
+	pplArrived := ((outpost.Population / 100) / 12)
+	fmt.Println(pplArrived, "people arrived...")
+	outpost.Population = outpost.Population + pplArrived
+}
+
+func (outpost *Outpost) produce() {
+	for i := range outpost.Holdings {
+		if outpost.Holdings[i] == "Local Supply" {
+			outpost.changeSupplesBy(200)
+		}
+	}
+}
+
+func (outpost *Outpost) Housing() int {
+	housing := 0
+	for i := range outpost.Holdings {
+		if outpost.Holdings[i] == "Colony Housing" {
+			housing = housing + 10000
+		}
+	}
+	return housing
+}
+
+func (outpost *Outpost) Status() {
+	fmt.Println("Population:", outpost.Population)
+	fmt.Println("Housing:", outpost.Housing())
+	fmt.Println("Supples:", outpost.Stored["Supplies"])
+	fmt.Println("Funds:", outpost.Credits)
 }
